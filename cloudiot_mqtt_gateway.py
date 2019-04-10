@@ -24,6 +24,7 @@ import socket
 import httplib2
 import urllib
 import base64
+import pathlib
 from time import ctime
 import paho.mqtt.client as mqtt
 from colors import bcolors
@@ -257,16 +258,22 @@ def get_token():
 
   url = "https://accounts.google.com/o/oauth2/token"
 
-  client_id = "701152526646-fe4tofj5d7oq4jrr1am39rh8qkr733ca.apps.googleusercontent.com"
-  client_secret = "31hI-6BcnAhlVdrXNxLxYlse"
-  grant_type = "refresh_token"
-  refresh_token = "1/WxpdzGHNgUtkUyuL7FdOmGnKeVJu5dI9udQmerNUYAA"
+  with open('client_secret.json', 'rb') as f:
+    json_data = json.load(f)
   
+  json_client = json_data['web']
+
+  grant_type = "refresh_token"
+
+  client_id = json_client['client_id']
+  client_secret = json_client['client_secret']
+  refresh_token = json_client['refresh_token']
+
   params = urllib.urlencode({
 	'client_id': client_id,
 	'client_secret': client_secret,
 	'grant_type': grant_type,
-    'refresh_token': refresh_token
+  'refresh_token': refresh_token
   })
 
   response, content = http.request(url, 'POST', params,
@@ -275,7 +282,7 @@ def get_token():
   json_data = json.loads(content)
 
   access_token = json_data['access_token']
-  print(access_token)
+  
   return access_token
 
 def device_configure(access_token, config):
@@ -284,12 +291,9 @@ def device_configure(access_token, config):
 
   binaryData = base64.urlsafe_b64encode(config.encode('utf-8')).decode('ascii')
 
-  print(binaryData)
+  url = "https://cloudiot.googleapis.com/v1"
 
-  url = "https://cloudiot.googleapis.com/v1/projects/snappy-provider-235604/locations/asia-east1/registries/Morillon.test1/devices/3342668697464892:modifyCloudToDeviceConfig?binaryData="+binaryData
-
-  print(url)
-
+  api = ":modifyCloudToDeviceConfig?binaryData="
 
   params = urllib.urlencode({
   })
@@ -297,9 +301,7 @@ def device_configure(access_token, config):
   headers = {'Authorization': "Bearer " + access_token,
       'Content-type': 'application/JSON'}
 
-  response, content = http.request(url, 'POST', params, headers = headers)
-
-  print(content)
+  response, content = http.request(url+path+api+binaryData, 'POST', params, headers = headers)
 
   json_data = json.loads(content)
 
@@ -311,23 +313,28 @@ def get_device_config(access_token):
   
   http = httplib2.Http()
 
-  url = "https://cloudiot.googleapis.com/v1/projects/snappy-provider-235604/locations/asia-east1/registries/Morillon.test1/devices/3342668697464892/configVersions?access_token="+access_token
+  url = "https://cloudiot.googleapis.com/v1"
+
+  api = "/configVersions?access_token="
 
   params = urllib.urlencode({
   })
 
-  response, content = http.request(url, 'GET', params,
+  response, content = http.request(url+path+api+access_token, 'GET', params,
   headers = {}
   )
-  #json_version = int(str(json.loads(content)['deviceConfigs'][0]).split(':')[1].split(',')[0].split("'")[1])
+
   device_config = base64.decodestring(str(json.loads(content)['deviceConfigs'][0]).split(':')[5].split(',')[0].split("'")[1])
-  print(device_config)
+  
   return device_config
 
 # [START iot_mqtt_run]
 def main():
   global gateway_state
-  get_device_config(get_token())
+  global path
+  
+  path = "/projects/{PROJECT_NAME}/locations/{REGION_NAME}/registries/{REGISTRY_NAME}/devices/{DEVICE_NAME}"
+
   args = parse_command_line_args()
 
   gateway_state.mqtt_config_topic = '/devices/{}/config'.format(parse_command_line_args().gateway_id)
@@ -359,7 +366,7 @@ def main():
       continue
 
 
-    LEDSTATE = get_device_config(get_token())
+    #LEDSTATE = get_device_config(get_token())
     action = command["action"]
     device_id = command["device"]
 
@@ -374,14 +381,17 @@ def main():
           device_id)
       print('Save mid {} for response {}'.format(event_mid, response))
       gateway_state.pending_responses[event_mid] = (client_addr, response)
-      data = command["data"]
-      if(data[0:4] == 'temp'):
-        temperature = int(data[5:7])
-        print(temperature)
-        if(temperature > 30 and LEDSTATE == "LEDOFF"):
-          device_configure(get_token(),"LEDON")
-        elif(temperature <= 30 and LEDSTATE == "LEDON"):
-          device_configure(get_token(),"LEDOFF")
+
+      ####################### event temp > 30 LEDON ######################
+      # if(payload[0:4] == 'temp'):
+      #   temperature = int(payload[5:7])
+      #   print(temperature)
+      #   if(temperature > 30 and LEDSTATE == "LEDOFF"):
+      #     device_configure(get_token(),"LEDON")
+      #   elif(temperature <= 30 and LEDSTATE == "LEDON"):
+      #     device_configure(get_token(),"LEDOFF")
+      ####################################################################
+
     elif action == 'attach':
       rc, attach_mid = attach_device(client, device_id)
       response = (
