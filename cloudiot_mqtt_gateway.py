@@ -285,7 +285,7 @@ def get_token():
   
   return access_token
 
-def device_configure(access_token, config):
+def device_configure(access_token, device_id, config):
 
   http = httplib2.Http()
 
@@ -301,7 +301,7 @@ def device_configure(access_token, config):
   headers = {'Authorization': "Bearer " + access_token,
       'Content-type': 'application/JSON'}
 
-  response, content = http.request(url+path+api+binaryData, 'POST', params, headers = headers)
+  response, content = http.request(url+path+str(device_id)+api+binaryData, 'POST', params, headers = headers)
 
   json_data = json.loads(content)
 
@@ -309,7 +309,7 @@ def device_configure(access_token, config):
 
   return cloudUpdateTime
 
-def get_device_config(access_token):
+def get_device_config(access_token,device_id):
   
   http = httplib2.Http()
 
@@ -320,7 +320,7 @@ def get_device_config(access_token):
   params = urllib.urlencode({
   })
 
-  response, content = http.request(url+path+api+access_token, 'GET', params,
+  response, content = http.request(url+path+str(device_id)+api+access_token, 'GET', params,
   headers = {}
   )
 
@@ -333,7 +333,7 @@ def main():
   global gateway_state
   global path
   
-  path = "/projects/{PROJECT_NAME}/locations/{REGION_NAME}/registries/{REGISTRY_NAME}/devices/{DEVICE_NAME}"
+  path = "/projects/{PROJECT_NAME}/locations/{REGION_NAME}/registries/{REGISTRY_NAME}/devices/"
 
   args = parse_command_line_args()
 
@@ -365,10 +365,9 @@ def main():
       print('invalid json command {}'.format(data))
       continue
 
-
-    #LEDSTATE = get_device_config(get_token())
     action = command["action"]
     device_id = command["device"]
+    #LEDSTATE = get_device_config(get_token(),device_id)
 
     if action == 'event':
       print('Sending telemetry event for device {}'.format(device_id))
@@ -387,9 +386,9 @@ def main():
       #   temperature = int(payload[5:7])
       #   print(temperature)
       #   if(temperature > 30 and LEDSTATE == "LEDOFF"):
-      #     device_configure(get_token(),"LEDON")
+      #     device_configure(get_token(),device_id,"LEDON")
       #   elif(temperature <= 30 and LEDSTATE == "LEDON"):
-      #     device_configure(get_token(),"LEDOFF")
+      #     device_configure(get_token(),device_id,"LEDOFF")
       ####################################################################
 
     elif action == 'attach':
