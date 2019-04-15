@@ -253,37 +253,38 @@ def detatch_device(client, device_id):
   return client.publish(detach_topic, "", qos=1)
 
 def get_token():
+  if os.path.isfile("client_secret.json") :
+    http = httplib2.Http()
 
-  http = httplib2.Http()
+    url = "https://accounts.google.com/o/oauth2/token"
+    
+    with open('client_secret.json', 'rb') as f:
+      json_data = json.load(f)
+    
+    json_client = json_data['web']
 
-  url = "https://accounts.google.com/o/oauth2/token"
+    grant_type = "refresh_token"
 
-  with open('client_secret.json', 'rb') as f:
-    json_data = json.load(f)
-  
-  json_client = json_data['web']
+    client_id = json_client['client_id']
+    client_secret = json_client['client_secret']
+    refresh_token = json_client['refresh_token']
 
-  grant_type = "refresh_token"
+    params = urllib.urlencode({
+    'client_id': client_id,
+    'client_secret': client_secret,
+    'grant_type': grant_type,
+    'refresh_token': refresh_token
+    })
 
-  client_id = json_client['client_id']
-  client_secret = json_client['client_secret']
-  refresh_token = json_client['refresh_token']
-
-  params = urllib.urlencode({
-	'client_id': client_id,
-	'client_secret': client_secret,
-	'grant_type': grant_type,
-  'refresh_token': refresh_token
-  })
-
-  response, content = http.request(url, 'POST', params,
-  headers = {'Content-type': 'application/x-www-form-urlencoded'}
-  )
-  json_data = json.loads(content)
-  if str(json_data).split(':')[0].split("'")[1] == 'access_token':
+    response, content = http.request(url, 'POST', params,
+    headers = {'Content-type': 'application/x-www-form-urlencoded'}
+    )
+    json_data = json.loads(content)
     access_token = json_data['access_token']
+    
   else:
     access_token = 0
+
   return access_token
 
 def device_configure(access_token, device_id, config):
