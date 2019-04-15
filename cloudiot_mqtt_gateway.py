@@ -280,52 +280,57 @@ def get_token():
   headers = {'Content-type': 'application/x-www-form-urlencoded'}
   )
   json_data = json.loads(content)
-
-  access_token = json_data['access_token']
-  
+  if str(json_data).split(':')[0].split("'")[1] == 'access_token':
+    access_token = json_data['access_token']
+  else:
+    access_token = 0
   return access_token
 
 def device_configure(access_token, device_id, config):
+  if access_token == 0:
+      cloudUpdateTime = 0
+  else:
+    http = httplib2.Http()
 
-  http = httplib2.Http()
+    binaryData = base64.urlsafe_b64encode(config.encode('utf-8')).decode('ascii')
 
-  binaryData = base64.urlsafe_b64encode(config.encode('utf-8')).decode('ascii')
+    url = "https://cloudiot.googleapis.com/v1"
 
-  url = "https://cloudiot.googleapis.com/v1"
+    api = ":modifyCloudToDeviceConfig?binaryData="
 
-  api = ":modifyCloudToDeviceConfig?binaryData="
+    params = urllib.urlencode({
+    })
 
-  params = urllib.urlencode({
-  })
+    headers = {'Authorization': "Bearer " + access_token,
+        'Content-type': 'application/JSON'}
 
-  headers = {'Authorization': "Bearer " + access_token,
-      'Content-type': 'application/JSON'}
+    response, content = http.request(url+path+str(device_id)+api+binaryData, 'POST', params, headers = headers)
 
-  response, content = http.request(url+path+str(device_id)+api+binaryData, 'POST', params, headers = headers)
+    json_data = json.loads(content)
 
-  json_data = json.loads(content)
-
-  cloudUpdateTime = json_data['cloudUpdateTime']
+    cloudUpdateTime = json_data['cloudUpdateTime']
 
   return cloudUpdateTime
 
 def get_device_config(access_token,device_id):
-  
-  http = httplib2.Http()
+  if access_token == 0:
+    device_config = 0
+  else:
+    http = httplib2.Http()
 
-  url = "https://cloudiot.googleapis.com/v1"
+    url = "https://cloudiot.googleapis.com/v1"
 
-  api = "/configVersions?access_token="
+    api = "/configVersions?access_token="
 
-  params = urllib.urlencode({
-  })
+    params = urllib.urlencode({
+    })
 
-  response, content = http.request(url+path+str(device_id)+api+access_token, 'GET', params,
-  headers = {}
-  )
+    response, content = http.request(url+path+str(device_id)+api+access_token, 'GET', params,
+    headers = {}
+    )
 
-  device_config = base64.decodestring(str(json.loads(content)['deviceConfigs'][0]).split(':')[5].split(',')[0].split("'")[1])
-  
+    device_config = base64.decodestring(str(json.loads(content)['deviceConfigs'][0]).split(':')[5].split(',')[0].split("'")[1])
+    
   return device_config
 
 # [START iot_mqtt_run]
@@ -367,7 +372,7 @@ def main():
 
     action = command["action"]
     device_id = command["device"]
-    #LEDSTATE = get_device_config(get_token(),device_id)
+    LEDSTATE = get_device_config(get_token(),device_id)
 
     if action == 'event':
       print('Sending telemetry event for device {}'.format(device_id))
@@ -382,13 +387,14 @@ def main():
       gateway_state.pending_responses[event_mid] = (client_addr, response)
 
       ####################### event temp > 30 LEDON ######################
-      # if(payload[0:4] == 'temp'):
-      #   temperature = int(payload[5:7])
-      #   print(temperature)
-      #   if(temperature > 30 and LEDSTATE == "LEDOFF"):
-      #     device_configure(get_token(),device_id,"LEDON")
-      #   elif(temperature <= 30 and LEDSTATE == "LEDON"):
-      #     device_configure(get_token(),device_id,"LEDOFF")
+      if LEDSTATE !=0:
+        if(payload[0:4] == 'temp'):
+          temperature = int(payload[5:7])
+          print(temperature)
+          if(temperature > 30 and LEDSTATE == "LEDOFF"):
+            device_configure(get_token(),device_id,"LEDON")
+          elif(temperature <= 30 and LEDSTATE == "LEDON"):
+            device_configure(get_token(),device_id,"LEDOFF")
       ####################################################################
 
     elif action == 'attach':
