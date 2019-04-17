@@ -339,9 +339,9 @@ def main():
   global gateway_state
   global path
   
-  path = "/projects/{PROJECT_NAME}/locations/{REGION_NAME}/registries/{REGISTRY_NAME}/devices/"
-
   args = parse_command_line_args()
+
+  path = "/projects/{}/locations/asia-east1/registries/{}/devices/".format(parse_command_line_args().project_id,  parse_command_line_args().registry_id)
 
   gateway_state.mqtt_config_topic = '/devices/{}/config'.format(parse_command_line_args().gateway_id)
   gateway_state.mqtt_bridge_hostname = args.mqtt_bridge_hostname
