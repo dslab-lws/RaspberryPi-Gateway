@@ -391,7 +391,6 @@ def main():
       if LEDSTATE !=0:
         if(payload[0:4] == 'temp'):
           temperature = int(payload[5:7])
-          print(temperature)
           if(temperature > 30 and LEDSTATE == "LEDOFF"):
             device_configure(get_token(),device_id,"LEDON")
           elif(temperature <= 30 and LEDSTATE == "LEDON"):
