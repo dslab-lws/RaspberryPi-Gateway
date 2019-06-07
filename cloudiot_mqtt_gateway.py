@@ -24,7 +24,6 @@ import socket
 import httplib2
 import urllib
 import base64
-import pathlib
 from time import ctime
 import paho.mqtt.client as mqtt
 from colors import bcolors
@@ -363,8 +362,8 @@ def main():
       data, client_addr = udpSerSock.recvfrom(BUFSIZE)
     except socket.error:
       continue
-    print "[%s]: From Address %s:%s receive data: %s" % (
-        ctime(), client_addr[0], client_addr[1], data)
+    print ("[%s]: From Address %s:%s receive data: %s" % (
+        ctime(), client_addr[0], client_addr[1], data))
 
     command = json.loads(data)
     if not command:
