@@ -1,4 +1,4 @@
 paho-mqtt==1.4.0
 pyjwt==1.6.4
-httplib2==0.12.1
+httplib2==0.18.0
 pathlib==1.0.1
